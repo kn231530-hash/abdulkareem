@@ -12,6 +12,15 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
+  function getVisitorId() {
+    const key = "orken_visitor_id";
+    const existing = window.localStorage.getItem(key);
+    if (existing) return existing;
+    const id = crypto.randomUUID();
+    window.localStorage.setItem(key, id);
+    return id;
+  }
+
   async function sendMessage(e: FormEvent) {
     e.preventDefault();
     const text = input.trim();
@@ -21,7 +30,7 @@ export default function Home() {
     setInput("");
     setLoading(true);
     try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: nextMessages }) });
+      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: nextMessages, visitorId: getVisitorId() }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Chat request failed");
       setMessages((current) => [...current, { role: "assistant", content: data.message }]);
