@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabase";
+import { getSupabaseAdmin } from "../../../lib/supabase";
 
 const SYSTEM_PROMPT = `You are Orken AI, a helpful and friendly AI chatbot.
 Reply clearly and naturally. You can answer in the user's language, including Urdu or Roman Urdu.
