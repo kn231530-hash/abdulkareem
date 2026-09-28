@@ -6,7 +6,7 @@ type Message = { role: "user" | "assistant"; content: string };
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi! 👋 Main Orkin AI chatbot hoon. Kuch bhi pooch sakte hain." }
+    { role: "assistant", content: "Hi! 👋 Main Orken AI chatbot hoon. Kuch bhi pooch sakte hain." }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -45,12 +45,12 @@ export default function Home() {
 
   return (
     <main className="page"><section className="chat">
-      <header className="header"><div className="logo">🤖</div><div><h1>Orkin AI Chatbot</h1><p>Powered by Groq</p></div><a href="https://orken.us/" target="_blank" rel="noreferrer">Website</a></header>
+      <header className="header"><div className="logo">🤖</div><div><h1>Orken AI Chatbot</h1><p>Powered by Groq</p></div><a href="https://orken.us/" target="_blank" rel="noreferrer">Website</a></header>
       <div className="messages">
         {messages.map((m, i) => <div key={i} className={m.role === "user" ? "message user" : "message assistant"}><span>{m.content}</span>{m.role === "assistant" && <button className="speak" type="button" onClick={() => speak(m.content)} disabled={speaking}>🔊 {speaking ? "Playing…" : "Listen"}</button>}</div>)}
         {loading && <div className="message assistant"><span>Typing…</span></div>}
       </div>
-      <form className="composer" onSubmit={sendMessage}><input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Message Orkin AI..." disabled={loading}/><button type="submit" disabled={loading || !input.trim()}>Send</button></form>
+      <form className="composer" onSubmit={sendMessage}><input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Message Orken AI..." disabled={loading}/><button type="submit" disabled={loading || !input.trim()}>Send</button></form>
     </section></main>
   );
 }
