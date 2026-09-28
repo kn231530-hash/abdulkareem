@@ -1,65 +1,16 @@
 "use client";
-
-import { FormEvent, useState } from "react";
-
-type Message = { role: "user" | "assistant"; content: string };
-
-export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi! 👋 Main Orken AI chatbot hoon. Kuch bhi pooch sakte hain." }
-  ]);
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
-
-  function getVisitorId() {
-    const key = "orken_visitor_id";
-    const existing = window.localStorage.getItem(key);
-    if (existing) return existing;
-    const id = crypto.randomUUID();
-    window.localStorage.setItem(key, id);
-    return id;
-  }
-
-  async function sendMessage(e: FormEvent) {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text || loading) return;
-    const nextMessages = [...messages, { role: "user" as const, content: text }];
-    setMessages(nextMessages);
-    setInput("");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ messages: nextMessages, visitorId: getVisitorId() }) });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Chat request failed");
-      setMessages((current) => [...current, { role: "assistant", content: data.message }]);
-    } catch (error) {
-      setMessages((current) => [...current, { role: "assistant", content: error instanceof Error ? error.message : "Something went wrong." }]);
-    } finally { setLoading(false); }
-  }
-
-  async function speak(text: string) {
-    if (speaking) return;
-    setSpeaking(true);
-    try {
-      const res = await fetch("/api/speech", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }) });
-      if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(data.error || "Voice request failed"); }
-      const audio = new Audio(URL.createObjectURL(await res.blob()));
-      audio.onended = () => setSpeaking(false);
-      audio.onerror = () => setSpeaking(false);
-      await audio.play();
-    } catch (error) { alert(error instanceof Error ? error.message : "Voice request failed"); setSpeaking(false); }
-  }
-
-  return (
-    <main className="page"><section className="chat">
-      <header className="header"><div className="logo">🤖</div><div><h1>Orken AI Chatbot</h1><p>Powered by Groq</p></div><a href="https://orken.us/" target="_blank" rel="noreferrer">Website</a></header>
-      <div className="messages">
-        {messages.map((m, i) => <div key={i} className={m.role === "user" ? "message user" : "message assistant"}><span>{m.content}</span>{m.role === "assistant" && <button className="speak" type="button" onClick={() => speak(m.content)} disabled={speaking}>🔊 {speaking ? "Playing…" : "Listen"}</button>}</div>)}
-        {loading && <div className="message assistant"><span>Typing…</span></div>}
-      </div>
-      <form className="composer" onSubmit={sendMessage}><input value={input} onChange={(e) => setInput(e.target.value)} placeholder="Message Orken AI..." disabled={loading}/><button type="submit" disabled={loading || !input.trim()}>Send</button></form>
-    </section></main>
-  );
-}
+import {useMemo,useState} from "react"; import {supabase} from "../lib/supabase";
+const foods=[["Naan Burger",1.85,"https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=900&q=80"],["Butter Chicken Taco",1.15,"https://images.unsplash.com/photo-1552332386-f8dd00dc2f85?auto=format&fit=crop&w=900&q=80"],["Chicken Burger",2,"https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=900&q=80"],["Cheese Chicken Naan",2.5,"https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=900&q=80"],["3 Layer Burger",4.99,"https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=900&q=80"],["Sandwich",2.8,"https://images.unsplash.com/photo-1521390188846-e2a3a97453a0?auto=format&fit=crop&w=900&q=80"]] as const;
+const offers=[["Russian Salad","$5.99","https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?auto=format&fit=crop&w=900&q=80"],["Eggs Salad","$5.99","https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80"],["Fruit Salad","$5.99","https://images.unsplash.com/photo-1490474418585-ba9bad8fd0ea?auto=format&fit=crop&w=900&q=80"],["Cheese Chicken Naan","$15.76","https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=900&q=80"]] as const;
+const chefs=[["Michal Gun","Head of Sales","https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&w=1000&q=80"],["Aleena White","Accountant","https://images.unsplash.com/photo-1515003197210-e0cd71810b5f?auto=format&fit=crop&w=1000&q=80"],["Cries Lee","CEO","https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1000&q=80"]] as const;
+export default function Home(){const[cart,setCart]=useState<typeof foods[number][]>([]),[open,setOpen]=useState(false),[form,setForm]=useState({name:"",phone:"",address:""}),[msg,setMsg]=useState("");const total=useMemo(()=>cart.reduce((a,x)=>a+x[1],0),[cart]);
+const add=(f:typeof foods[number])=>{setCart(c=>[...c,f]);setMsg(f[0]+" added");setTimeout(()=>setMsg(""),1500)};
+const order=async()=>{if(!form.name||!form.phone||!form.address||!cart.length){setMsg("Complete your details and add food.");return}if(supabase){const{error}=await supabase.from("orders").insert({customer_name:form.name,phone:form.phone,address:form.address,items:cart,total});if(error){setMsg("Supabase order save failed.");return}}setMsg("Order placed successfully!");setCart([]);setForm({name:"",phone:"",address:""})};
+return <main><header className="nav wrap"><a className="logo" href="#">NAYEF</a><nav><a href="#home">HOME</a><a href="#about">ABOUT US</a><a href="#contact">CONTACT US</a><a href="#menu">MENU</a></nav><button className="order" onClick={()=>setOpen(true)}>ORDER NOW</button></header>
+<section id="home" className="hero wrap"><div><p className="eyebrow">SAVOR THE</p><h1>TASTE</h1><h2>Naan Burger<br/>Butter Chicken Taco<br/>Chicken Burger</h2><p>Freshly prepared favorites, baked and cooked with quality ingredients, bold flavors and a whole lot of passion.</p><button className="primary" onClick={()=>document.getElementById("menu")?.scrollIntoView({behavior:"smooth"})}>EXPLORE MENU</button></div><div className="hero-img"><img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=1100&q=85" alt="Food"/></div></section>
+<section id="menu" className="wrap section"><h2>Our Best &amp; Delicious Menu</h2><div className="filters">All　 Bread　 Chiffon &amp; Rolls　 Donut　 Pastry &amp; Danish　 Cakes　 Cookies</div><div className="grid">{foods.map(f=><article key={f[0]}><div className="food"><img src={f[2]} alt={f[0]}/><button onClick={()=>add(f)}>+</button></div><div className="meta"><b>{f[0]}</b><strong>{"$"+f[1].toFixed(2)}</strong></div></article>)}</div></section>
+<section className="wrap section"><h2>HOT OFFERS</h2><p>Fresh salads, burgers, naanwiches and bakery favorites made for every craving.</p><div className="offers">{offers.map(o=><article key={o[0]}><img src={o[2]} alt={o[0]}/><div><b>{o[0]}</b><strong>{o[1]}</strong></div></article>)}</div></section>
+<section id="about" className="wrap section"><h2>Our Top Chefs</h2><div className="chefs">{chefs.map(c=><article key={c[0]}><img src={c[2]} alt={c[0]}/><h3>{c[0]}</h3><small>{c[1]}</small></article>)}</div></section>
+<section className="stats"><div className="wrap statsgrid"><div><b>2M+</b><span>Happy Customers</span></div><div><b>98%</b><span>Customer Satisfaction</span></div><div><b>20+</b><span>Our Branches</span></div><div><b>100+</b><span>Total Employees</span></div></div></section>
+<section id="contact" className="wrap section"><h2>What Our Clients Are Saying</h2><h3>Why We Are Best Food Maker</h3><div className="quotes"><div>Fresh food, beautiful presentation and amazing service.<b>Michal Gun</b></div><div>Everything tastes intentional, fresh and full of flavor.<b>Aleena White</b></div><div>A warm place with food that keeps us coming back.<b>Cries Lee</b></div></div></section>
+{msg&&<div className="toast">{msg}</div>}{open&&<div className="overlay" onClick={()=>setOpen(false)}><div className="cart" onClick={e=>e.stopPropagation()}><button className="x" onClick={()=>setOpen(false)}>×</button><h2>Your Order</h2>{cart.length?<><div>{cart.map((f,i)=><p key={i}>{f[0]} <b>{"$"+f[1].toFixed(2)}</b></p>)}</div><h3>{"Total $"+total.toFixed(2)}</h3><input placeholder="Your name" value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/><input placeholder="Phone" value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/><textarea placeholder="Delivery address" value={form.address} onChange={e=>setForm({...form,address:e.target.value})}/><button className="primary full" onClick={order}>PLACE ORDER</button></>:<p>Your cart is empty. Add something delicious.</p>}</div></div>}</main>}
